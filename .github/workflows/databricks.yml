@@ -1,7 +1,7 @@
+%python
+# This creates a FIXED workflow file with correct YAML syntax
 
-# Generate improved GitHub Actions workflow with serverless compute
-
-improved_workflow = """name: Run Databricks Notebook
+fixed_workflow = '''name: Run Databricks Notebook
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: "3.10"
     
     - name: Install Databricks SDK
       run: |
@@ -32,7 +32,7 @@ jobs:
         DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
         DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
       run: |
-        python << 'PYTHON_SCRIPT'
+        python << "PYTHON_SCRIPT"
 import os
 import time
 import sys
@@ -40,11 +40,11 @@ from databricks.sdk import WorkspaceClient
 
 # Initialize client
 w = WorkspaceClient(
-    host=os.environ['DATABRICKS_HOST'],
-    token=os.environ['DATABRICKS_TOKEN']
+    host=os.environ["DATABRICKS_HOST"],
+    token=os.environ["DATABRICKS_TOKEN"]
 )
 
-print("\u2705 Connected to Databricks")
+print("Connected to Databricks")
 
 # Create and run job
 try:
@@ -58,19 +58,21 @@ try:
                     "notebook_path": "/Users/punithm58@gmail.com/Data Pipeline Testing Framework",
                     "source": "WORKSPACE"
                 },
-                # Use serverless compute - no instance type needed!
-                "compute_key": "Default"
+                "new_cluster": {
+                    "spark_version": "14.3.x-scala2.12",
+                    "node_type_id": "i3.xlarge",
+                    "num_workers": 1
+                }
             }
         ],
-        # Enable automatic cleanup
         max_concurrent_runs=1
     )
     
-    print(f"\u2705 Created job: {job.job_id}")
+    print(f"Created job: {job.job_id}")
     
     # Run job
     run = w.jobs.run_now(job_id=job.job_id)
-    print(f"\u2705 Started run: {run.run_id}")
+    print(f"Started run: {run.run_id}")
     
     # Wait for completion
     while True:
@@ -89,18 +91,18 @@ try:
     
     # Cleanup
     w.jobs.delete(job_id=job.job_id)
-    print("\u2705 Cleaned up temporary job")
+    print("Cleaned up temporary job")
     
     # Exit with appropriate code
     if result == "SUCCESS":
-        print("\n\u2705 Notebook executed successfully!")
+        print("Notebook executed successfully!")
         sys.exit(0)
     else:
-        print(f"\n\u274c Notebook execution failed: {result}")
+        print(f"Notebook execution failed: {result}")
         sys.exit(1)
         
 except Exception as e:
-    print(f"\u274c Error: {str(e)}")
+    print(f"Error: {str(e)}")
     sys.exit(1)
 PYTHON_SCRIPT
     
@@ -109,24 +111,27 @@ PYTHON_SCRIPT
       run: |
         echo "Check Databricks workspace for detailed logs"
         echo "Notebook: /Users/punithm58@gmail.com/Data Pipeline Testing Framework"
-"""
+'''
 
-print("="*80)
-print("IMPROVED GITHUB ACTIONS WORKFLOW")
-print("="*80)
-print(improved_workflow)
-print("="*80)
-print("\n[*] WHAT TO DO:")
-print("1. Copy everything above (between === lines)")
-print("2. In your GitHub repo, go to: .github/workflows/")
-print("3. Create or update file: databricks-notebook.yml")
-print("4. Paste this content")
-print("5. Commit and push")
-print("="*80)
+print("=" * 80)
+print("FIXED GITHUB ACTIONS WORKFLOW")
+print("=" * 80)
+print(fixed_workflow)
+print("=" * 80)
+print()
+print("COPY THE ABOVE CONTENT TO:")
+print(".github/workflows/databricks.yml")
+print()
+print("Key fixes:")
+print("1. Correct YAML indentation")
+print("2. Proper Python script embedding")
+print("3. Correct quote escaping")
+print("4. Proper new_cluster configuration")
+print("=" * 80)
 
 # Save to file
-with open('/Workspace/Users/punithm58@gmail.com/Drafts/improved-github-workflow.yml', 'w') as f:
-    f.write(improved_workflow)
+with open('/Workspace/Users/punithm58@gmail.com/Drafts/fixed-github-workflow.yml', 'w') as f:
+    f.write(fixed_workflow)
 
-print("\n[+] Saved to: /Workspace/Users/punithm58@gmail.com/Drafts/improved-github-workflow.yml")
-print("\n[!] IMPORTANT: Remember to add GitHub secrets first (see previous cell)!")
+print()
+print("Saved to: /Workspace/Users/punithm58@gmail.com/Drafts/fixed-github-workflow.yml")

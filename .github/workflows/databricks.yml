@@ -1,4 +1,4 @@
-%python
+
 # This creates a FIXED workflow file with correct YAML syntax
 
 fixed_workflow = '''name: Run Databricks Notebook

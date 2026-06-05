@@ -1,0 +1,36 @@
+name: Run Databricks Notebook
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-notebook:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli
+
+      - name: Configure Databricks
+        run: |
+          databricks configure --token <<EOF
+          ${{ secrets.DATABRICKS_HOST }}
+          ${{ secrets.DATABRICKS_TOKEN }}
+          EOF
+
+      - name: Run Notebook
+        run: |
+          databricks runs submit \
+          --json '{
+            "run_name": "GitHub_Run",
+            "existing_cluster_id": "REPLACE_CLUSTER_ID",
+            "notebook_task": {
+              "notebook_path": "REPLACE_NOTEBOOK_PATH"
+            }
+          }'
+``

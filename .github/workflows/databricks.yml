@@ -1,38 +1,132 @@
-name: Run Databricks Notebook
+
+# Generate improved GitHub Actions workflow with serverless compute
+
+improved_workflow = """name: Run Databricks Notebook
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
-  run-notebook:
+  run-databricks-notebook:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install Databricks SDK
+      run: |
+        pip install databricks-sdk
+    
+    - name: Run Databricks Notebook
+      env:
+        DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+        DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      run: |
+        python << 'PYTHON_SCRIPT'
+import os
+import time
+import sys
+from databricks.sdk import WorkspaceClient
 
-      - name: Install Databricks CLI
-        run: |
-          pip install databricks-cli
+# Initialize client
+w = WorkspaceClient(
+    host=os.environ['DATABRICKS_HOST'],
+    token=os.environ['DATABRICKS_TOKEN']
+)
 
-      - name: Configure Databricks
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: |
-          databricks configure --token <<EOF
-          $DATABRICKS_HOST
-          $DATABRICKS_TOKEN
-          EOF
+print("\u2705 Connected to Databricks")
 
-      - name: Run Notebook
-        run: |
-          databricks runs submit --json '{
-            "run_name": "GitHub_Run",
-            "existing_cluster_id": "REPLACE_CLUSTER_ID",
-            "notebook_task": {
-              "notebook_path": "REPLACE_NOTEBOOK_PATH"
+# Create and run job
+try:
+    # Create job
+    job = w.jobs.create(
+        name=f"GitHub_Actions_Run_${{ github.run_number }}",
+        tasks=[
+            {
+                "task_key": "run_notebook",
+                "notebook_task": {
+                    "notebook_path": "/Users/punithm58@gmail.com/Data Pipeline Testing Framework",
+                    "source": "WORKSPACE"
+                },
+                # Use serverless compute - no instance type needed!
+                "compute_key": "Default"
             }
-          }'
+        ],
+        # Enable automatic cleanup
+        max_concurrent_runs=1
+    )
+    
+    print(f"\u2705 Created job: {job.job_id}")
+    
+    # Run job
+    run = w.jobs.run_now(job_id=job.job_id)
+    print(f"\u2705 Started run: {run.run_id}")
+    
+    # Wait for completion
+    while True:
+        run_status = w.jobs.get_run(run_id=run.run_id)
+        state = run_status.state.life_cycle_state.value
+        print(f"Current state: {state}")
+        
+        if state in ["TERMINATED", "SKIPPED", "INTERNAL_ERROR"]:
+            break
+        
+        time.sleep(10)
+    
+    # Check result
+    result = run_status.state.result_state.value
+    print(f"Final result: {result}")
+    
+    # Cleanup
+    w.jobs.delete(job_id=job.job_id)
+    print("\u2705 Cleaned up temporary job")
+    
+    # Exit with appropriate code
+    if result == "SUCCESS":
+        print("\n\u2705 Notebook executed successfully!")
+        sys.exit(0)
+    else:
+        print(f"\n\u274c Notebook execution failed: {result}")
+        sys.exit(1)
+        
+except Exception as e:
+    print(f"\u274c Error: {str(e)}")
+    sys.exit(1)
+PYTHON_SCRIPT
+    
+    - name: Summary
+      if: always()
+      run: |
+        echo "Check Databricks workspace for detailed logs"
+        echo "Notebook: /Users/punithm58@gmail.com/Data Pipeline Testing Framework"
+"""
+
+print("="*80)
+print("IMPROVED GITHUB ACTIONS WORKFLOW")
+print("="*80)
+print(improved_workflow)
+print("="*80)
+print("\n[*] WHAT TO DO:")
+print("1. Copy everything above (between === lines)")
+print("2. In your GitHub repo, go to: .github/workflows/")
+print("3. Create or update file: databricks-notebook.yml")
+print("4. Paste this content")
+print("5. Commit and push")
+print("="*80)
+
+# Save to file
+with open('/Workspace/Users/punithm58@gmail.com/Drafts/improved-github-workflow.yml', 'w') as f:
+    f.write(improved_workflow)
+
+print("\n[+] Saved to: /Workspace/Users/punithm58@gmail.com/Drafts/improved-github-workflow.yml")
+print("\n[!] IMPORTANT: Remember to add GitHub secrets first (see previous cell)!")

@@ -1,7 +1,48 @@
-# This workflow uses a completely different approach
-# to avoid ALL heredoc and YAML indentation issues
 
-bulletproof_workflow = '''name: Run Databricks Notebook
+# ULTIMATE SIMPLE VERSION - No heredoc at all!
+# Uses base64 encoding to avoid ALL YAML issues
+
+import base64
+
+# The Python script
+python_script = '''
+import os, time, sys
+from databricks.sdk import WorkspaceClient
+
+w = WorkspaceClient(host=os.environ["DATABRICKS_HOST"], token=os.environ["DATABRICKS_TOKEN"])
+print("Connected to Databricks")
+
+job = w.jobs.create(
+    name="GitHub_Run",
+    tasks=[{
+        "task_key": "nb",
+        "notebook_task": {"notebook_path": "/Users/punithm58@gmail.com/Data Pipeline Testing Framework", "source": "WORKSPACE"},
+        "new_cluster": {"spark_version": "14.3.x-scala2.12", "node_type_id": "i3.xlarge", "num_workers": 1}
+    }]
+)
+print(f"Job: {job.job_id}")
+
+run = w.jobs.run_now(job_id=job.job_id)
+print(f"Run: {run.run_id}")
+
+while True:
+    status = w.jobs.get_run(run_id=run.run_id)
+    state = status.state.life_cycle_state.value
+    print(f"Status: {state}")
+    if state in ["TERMINATED", "SKIPPED", "INTERNAL_ERROR"]:
+        break
+    time.sleep(10)
+
+result = status.state.result_state.value
+w.jobs.delete(job_id=job.job_id)
+print(f"Result: {result}")
+sys.exit(0 if result == "SUCCESS" else 1)
+'''
+
+# Encode to base64
+encoded = base64.b64encode(python_script.encode()).decode()
+
+ultimate_workflow = f'''name: Run Databricks Notebook
 
 on:
   push:
@@ -12,88 +53,49 @@ on:
 jobs:
   run-notebook:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"
-    
-    - name: Install Dependencies
-      run: pip install databricks-sdk
-    
-    - name: Create Python Script
-      run: |
-        cat > run_nb.py << "ENDOFFILE"
-        import os, time, sys
-        from databricks.sdk import WorkspaceClient
-        
-        w = WorkspaceClient(host=os.environ["DATABRICKS_HOST"], token=os.environ["DATABRICKS_TOKEN"])
-        print("Connected to Databricks")
-        
-        job = w.jobs.create(
-            name="GitHub_Run",
-            tasks=[{
-                "task_key": "nb",
-                "notebook_task": {"notebook_path": "/Users/punithm58@gmail.com/Data Pipeline Testing Framework", "source": "WORKSPACE"},
-                "new_cluster": {"spark_version": "14.3.x-scala2.12", "node_type_id": "i3.xlarge", "num_workers": 1}
-            }]
-        )
-        print(f"Job created: {job.job_id}")
-        
-        run = w.jobs.run_now(job_id=job.job_id)
-        print(f"Run started: {run.run_id}")
-        
-        while True:
-            status = w.jobs.get_run(run_id=run.run_id)
-            state = status.state.life_cycle_state.value
-            print(f"Status: {state}")
-            if state in ["TERMINATED", "SKIPPED", "INTERNAL_ERROR"]:
-                break
-            time.sleep(10)
-        
-        result = status.state.result_state.value
-        w.jobs.delete(job_id=job.job_id)
-        print(f"Result: {result}")
-        
-        sys.exit(0 if result == "SUCCESS" else 1)
-        ENDOFFILE
-    
-    - name: Run Script
-      env:
-        DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-        DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-      run: python run_nb.py
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      
+      - name: Install SDK
+        run: pip install databricks-sdk
+      
+      - name: Create and Run Script
+        env:
+          DATABRICKS_HOST: ${{{{ secrets.DATABRICKS_HOST }}}}
+          DATABRICKS_TOKEN: ${{{{ secrets.DATABRICKS_TOKEN }}}}
+          SCRIPT_B64: {encoded}
+        run: |
+          echo "$SCRIPT_B64" | base64 -d > run_nb.py
+          python run_nb.py
 '''
 
 print("=" * 80)
-print("BULLETPROOF GITHUB ACTIONS WORKFLOW")
-print("This version ELIMINATES the YAML syntax error!")
+print("ULTIMATE SIMPLE WORKFLOW - NO HEREDOC ISSUES!")
 print("=" * 80)
 print()
-print(bulletproof_workflow)
+print(ultimate_workflow)
 print()
 print("=" * 80)
-print("COPY INSTRUCTIONS:")
-print("1. Select EVERYTHING between the === lines above")
-print("2. Copy it (Ctrl+C or Cmd+C)")
-print("3. Go to: https://github.com/Punith-stack/employee_CICD")
-print("4. Navigate to: .github/workflows/databricks.yml")
-print("5. Click 'Edit' (pencil icon)")
-print("6. SELECT ALL (Ctrl+A) and DELETE")
-print("7. PASTE the new content")
-print("8. Commit changes")
+print("INSTRUCTIONS:")
+print("1. Copy EVERYTHING between === lines")
+print("2. Go to: .github/workflows/databricks.yml")
+print("3. DELETE ALL content")
+print("4. PASTE")
+print("5. Commit")
 print("=" * 80)
 
-# Save to file
-with open('/Workspace/Users/punithm58@gmail.com/Drafts/bulletproof-workflow.yml', 'w') as f:
-    f.write(bulletproof_workflow)
+# Save
+with open('/Workspace/Users/punithm58@gmail.com/Drafts/ultimate-workflow.yml', 'w') as f:
+    f.write(ultimate_workflow)
 
 print()
-print("Also saved to: /Workspace/Users/punithm58@gmail.com/Drafts/bulletproof-workflow.yml")
+print("Saved to: /Workspace/Users/punithm58@gmail.com/Drafts/ultimate-workflow.yml")
 print()
-print("KEY DIFFERENCE: This workflow creates the Python file FIRST,")
-print("then runs it separately - no complex YAML heredoc issues!")
+print("WHY THIS WORKS: Python code is base64-encoded,")
+print("so NO YAML parsing issues possible!")

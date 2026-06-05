@@ -1,137 +1,100 @@
 
-# This creates a FIXED workflow file with correct YAML syntax
+# This workflow uses a completely different approach
+# to avoid ALL heredoc and YAML indentation issues
 
-fixed_workflow = '''name: Run Databricks Notebook
+bulletproof_workflow = '''name: Run Databricks Notebook
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  run-databricks-notebook:
+  run-notebook:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
+    - name: Checkout
       uses: actions/checkout@v3
     
-    - name: Set up Python
+    - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.10"
     
-    - name: Install Databricks SDK
-      run: |
-        pip install databricks-sdk
+    - name: Install Dependencies
+      run: pip install databricks-sdk
     
-    - name: Run Databricks Notebook
+    - name: Create Python Script
+      run: |
+        cat > run_nb.py << "ENDOFFILE"
+        import os, time, sys
+        from databricks.sdk import WorkspaceClient
+        
+        w = WorkspaceClient(host=os.environ["DATABRICKS_HOST"], token=os.environ["DATABRICKS_TOKEN"])
+        print("Connected to Databricks")
+        
+        job = w.jobs.create(
+            name="GitHub_Run",
+            tasks=[{
+                "task_key": "nb",
+                "notebook_task": {"notebook_path": "/Users/punithm58@gmail.com/Data Pipeline Testing Framework", "source": "WORKSPACE"},
+                "new_cluster": {"spark_version": "14.3.x-scala2.12", "node_type_id": "i3.xlarge", "num_workers": 1}
+            }]
+        )
+        print(f"Job created: {job.job_id}")
+        
+        run = w.jobs.run_now(job_id=job.job_id)
+        print(f"Run started: {run.run_id}")
+        
+        while True:
+            status = w.jobs.get_run(run_id=run.run_id)
+            state = status.state.life_cycle_state.value
+            print(f"Status: {state}")
+            if state in ["TERMINATED", "SKIPPED", "INTERNAL_ERROR"]:
+                break
+            time.sleep(10)
+        
+        result = status.state.result_state.value
+        w.jobs.delete(job_id=job.job_id)
+        print(f"Result: {result}")
+        
+        sys.exit(0 if result == "SUCCESS" else 1)
+        ENDOFFILE
+    
+    - name: Run Script
       env:
         DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
         DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-      run: |
-        python << "PYTHON_SCRIPT"
-import os
-import time
-import sys
-from databricks.sdk import WorkspaceClient
-
-# Initialize client
-w = WorkspaceClient(
-    host=os.environ["DATABRICKS_HOST"],
-    token=os.environ["DATABRICKS_TOKEN"]
-)
-
-print("Connected to Databricks")
-
-# Create and run job
-try:
-    # Create job
-    job = w.jobs.create(
-        name=f"GitHub_Actions_Run_${{ github.run_number }}",
-        tasks=[
-            {
-                "task_key": "run_notebook",
-                "notebook_task": {
-                    "notebook_path": "/Users/punithm58@gmail.com/Data Pipeline Testing Framework",
-                    "source": "WORKSPACE"
-                },
-                "new_cluster": {
-                    "spark_version": "14.3.x-scala2.12",
-                    "node_type_id": "i3.xlarge",
-                    "num_workers": 1
-                }
-            }
-        ],
-        max_concurrent_runs=1
-    )
-    
-    print(f"Created job: {job.job_id}")
-    
-    # Run job
-    run = w.jobs.run_now(job_id=job.job_id)
-    print(f"Started run: {run.run_id}")
-    
-    # Wait for completion
-    while True:
-        run_status = w.jobs.get_run(run_id=run.run_id)
-        state = run_status.state.life_cycle_state.value
-        print(f"Current state: {state}")
-        
-        if state in ["TERMINATED", "SKIPPED", "INTERNAL_ERROR"]:
-            break
-        
-        time.sleep(10)
-    
-    # Check result
-    result = run_status.state.result_state.value
-    print(f"Final result: {result}")
-    
-    # Cleanup
-    w.jobs.delete(job_id=job.job_id)
-    print("Cleaned up temporary job")
-    
-    # Exit with appropriate code
-    if result == "SUCCESS":
-        print("Notebook executed successfully!")
-        sys.exit(0)
-    else:
-        print(f"Notebook execution failed: {result}")
-        sys.exit(1)
-        
-except Exception as e:
-    print(f"Error: {str(e)}")
-    sys.exit(1)
-PYTHON_SCRIPT
-    
-    - name: Summary
-      if: always()
-      run: |
-        echo "Check Databricks workspace for detailed logs"
-        echo "Notebook: /Users/punithm58@gmail.com/Data Pipeline Testing Framework"
+      run: python run_nb.py
 '''
 
 print("=" * 80)
-print("FIXED GITHUB ACTIONS WORKFLOW")
-print("=" * 80)
-print(fixed_workflow)
+print("BULLETPROOF GITHUB ACTIONS WORKFLOW")
+print("This version ELIMINATES the YAML syntax error!")
 print("=" * 80)
 print()
-print("COPY THE ABOVE CONTENT TO:")
-print(".github/workflows/databricks.yml")
+print(bulletproof_workflow)
 print()
-print("Key fixes:")
-print("1. Correct YAML indentation")
-print("2. Proper Python script embedding")
-print("3. Correct quote escaping")
-print("4. Proper new_cluster configuration")
+print("=" * 80)
+print("COPY INSTRUCTIONS:")
+print("1. Select EVERYTHING between the === lines above")
+print("2. Copy it (Ctrl+C or Cmd+C)")
+print("3. Go to: https://github.com/Punith-stack/employee_CICD")
+print("4. Navigate to: .github/workflows/databricks.yml")
+print("5. Click 'Edit' (pencil icon)")
+print("6. SELECT ALL (Ctrl+A) and DELETE")
+print("7. PASTE the new content")
+print("8. Commit changes")
 print("=" * 80)
 
 # Save to file
-with open('/Workspace/Users/punithm58@gmail.com/Drafts/fixed-github-workflow.yml', 'w') as f:
-    f.write(fixed_workflow)
+with open('/Workspace/Users/punithm58@gmail.com/Drafts/bulletproof-workflow.yml', 'w') as f:
+    f.write(bulletproof_workflow)
 
 print()
-print("Saved to: /Workspace/Users/punithm58@gmail.com/Drafts/fixed-github-workflow.yml")
+print("Also saved to: /Workspace/Users/punithm58@gmail.com/Drafts/bulletproof-workflow.yml")
+print()
+print("KEY DIFFERENCE: This workflow creates the Python file FIRST,")
+print("then runs it separately - no complex YAML heredoc issues!")

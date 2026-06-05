@@ -1,4 +1,4 @@
-
+%python
 # This workflow uses a completely different approach
 # to avoid ALL heredoc and YAML indentation issues
 
